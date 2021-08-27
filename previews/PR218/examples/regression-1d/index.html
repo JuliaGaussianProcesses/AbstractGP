@@ -39,8 +39,8 @@ scatter(x, y; xlabel=&quot;x&quot;, ylabel=&quot;y&quot;, legend=false)</code></
 y_train = y[1:8]
 x_test = x[9:end]
 y_test = y[9:end]</code></pre><p>We instantiate a Gaussian process with a Matern kernel. The kernel has fixed variance and length scale parameters of default value 1.</p><pre><code class="language-julia hljs">f = GP(Matern52Kernel())</code></pre><p>We create a finite dimensional projection at the inputs of the training dataset observed under Gaussian noise with standard deviation <span>$\sigma = 0.1$</span>, and compute the log-likelihood of the outputs of the training dataset.</p><pre><code class="language-julia hljs">fx = f(x_train, 0.1)
-logpdf(fx, y_train)</code></pre><pre><code class="nohighlight hljs">-25.53057444906227</code></pre><p>We compute the posterior Gaussian process given the training data, and calculate the log-likelihood of the test dataset.</p><pre><code class="language-julia hljs">p_fx = posterior(fx, y_train)
-logpdf(p_fx(x_test), y_test)</code></pre><pre><code class="nohighlight hljs">-232.51565975751606</code></pre><p>We plot the posterior Gaussian process (its mean and a ribbon of 2 standard deviations around it) on a grid along with the observations.</p><pre><code class="language-julia hljs">scatter(
+logpdf(fx, y_train)</code></pre><pre><code class="nohighlight hljs">-25.53057444906228</code></pre><p>We compute the posterior Gaussian process given the training data, and calculate the log-likelihood of the test dataset.</p><pre><code class="language-julia hljs">p_fx = posterior(fx, y_train)
+logpdf(p_fx(x_test), y_test)</code></pre><pre><code class="nohighlight hljs">-232.51565975767468</code></pre><p>We plot the posterior Gaussian process (its mean and a ribbon of 2 standard deviations around it) on a grid along with the observations.</p><pre><code class="language-julia hljs">scatter(
     x_train,
     y_train;
     xlim=(0, 1),
@@ -80,7 +80,7 @@ adaptor = StanHMCAdaptor(MassMatrixAdaptor(metric), StepSizeAdaptor(0.8, integra
 │    )
 │   τ.integrator = Leapfrog(ϵ=0.878)
 └   h.metric = DiagEuclideanMetric([0.4629350832008615, 0.5149 ...])
-┌ Info: Finished 2000 sampling steps for 1 chains in 1.648885809 (s)
+┌ Info: Finished 2000 sampling steps for 1 chains in 2.20193825 (s)
 │   h = Hamiltonian(metric=DiagEuclideanMetric([0.4629350832008615, 0.5149 ...]))
 │   τ = NUTS{MultinomialTS,Generalised}(integrator=Leapfrog(ϵ=0.878), max_depth=10), Δ_max=1000.0)
 │   EBFMI_est = 1.1378159434617516
@@ -102,7 +102,7 @@ vline!(mean_samples&#39;; linewidth=2)</code></pre><p><img src="../2665854652.pn
     return posterior(f(x, 0.1), y)
 end
 
-mean(logpdf(gp_posterior(x_train, y_train, p)(x_test), y_test) for p in samples)</code></pre><pre><code class="nohighlight hljs">-11.204446271483796</code></pre><p>We sample 5 functions from each posterior GP given by the final 100 samples of kernel parameters.</p><pre><code class="language-julia hljs">plt = plot(; xlim=(0, 1), xlabel=&quot;x&quot;, ylabel=&quot;y&quot;, title=&quot;posterior (AdvancedHMC)&quot;)
+mean(logpdf(gp_posterior(x_train, y_train, p)(x_test), y_test) for p in samples)</code></pre><pre><code class="nohighlight hljs">-11.204446271486626</code></pre><p>We sample 5 functions from each posterior GP given by the final 100 samples of kernel parameters.</p><pre><code class="language-julia hljs">plt = plot(; xlim=(0, 1), xlabel=&quot;x&quot;, ylabel=&quot;y&quot;, title=&quot;posterior (AdvancedHMC)&quot;)
 for (i, p) in enumerate(samples[(end - 100):end])
     sampleplot!(
         plt,
@@ -138,8 +138,8 @@ end</code></pre><p>Now we can draw samples from the posterior distribution of ke
         reporter=NoProgressReport(),
     ).chain</code></pre><p>We transform the samples back to the constrained space and compute the mean of both parameters:</p><pre><code class="language-julia hljs">samples_constrained = [map(softplus, p) for p in samples]
 mean_samples = mean(samples_constrained)</code></pre><pre><code class="nohighlight hljs">2-element Vector{Float64}:
- 2.301080809097698
- 2.219512950769907</code></pre><p>We plot a histogram of the samples for the two parameters. The vertical line in each graph indicates the mean of the samples.</p><pre><code class="language-julia hljs">histogram(
+ 2.31522466420798
+ 2.2627046116441707</code></pre><p>We plot a histogram of the samples for the two parameters. The vertical line in each graph indicates the mean of the samples.</p><pre><code class="language-julia hljs">histogram(
     reduce(hcat, samples_constrained)&#39;;
     xlabel=&quot;sample&quot;,
     ylabel=&quot;counts&quot;,
@@ -147,7 +147,7 @@ mean_samples = mean(samples_constrained)</code></pre><pre><code class="nohighlig
     title=[&quot;variance&quot; &quot;inverse length scale&quot;],
     legend=false,
 )
-vline!(mean_samples&#39;; linewidth=2)</code></pre><p><img src="../2665854652.png" alt/></p><p>Again we can observe that there is a significant improvement over the log-likelihood of the test data with respect to the posterior Gaussian process with default kernel parameters.</p><pre><code class="language-julia hljs">mean(logpdf(gp_posterior(x_train, y_train, p)(x_test), y_test) for p in samples)</code></pre><pre><code class="nohighlight hljs">-9.515868146706866</code></pre><p>We sample a function from the posterior GP for the final 100 samples of kernel parameters.</p><pre><code class="language-julia hljs">plt = plot(; xlim=(0, 1), xlabel=&quot;x&quot;, ylabel=&quot;y&quot;, title=&quot;posterior (DynamicHMC)&quot;)
+vline!(mean_samples&#39;; linewidth=2)</code></pre><p><img src="../2665854652.png" alt/></p><p>Again we can observe that there is a significant improvement over the log-likelihood of the test data with respect to the posterior Gaussian process with default kernel parameters.</p><pre><code class="language-julia hljs">mean(logpdf(gp_posterior(x_train, y_train, p)(x_test), y_test) for p in samples)</code></pre><pre><code class="nohighlight hljs">-7.449598088103853</code></pre><p>We sample a function from the posterior GP for the final 100 samples of kernel parameters.</p><pre><code class="language-julia hljs">plt = plot(; xlim=(0, 1), xlabel=&quot;x&quot;, ylabel=&quot;y&quot;, title=&quot;posterior (DynamicHMC)&quot;)
 scatter!(plt, x_train, y_train; label=&quot;Train Data&quot;)
 scatter!(plt, x_test, y_test; label=&quot;Test Data&quot;)
 for p in samples[(end - 100):end]
@@ -158,15 +158,15 @@ plt</code></pre><p><img src="../3020832906.png" alt/></p><h3 id="Elliptical-slic
     loglik_train,
 ), ESS(), n_samples; progress=false)</code></pre><p>We transform the samples back to the constrained space and compute the mean of both parameters:</p><pre><code class="language-julia hljs">samples_constrained = [map(softplus, p) for p in samples]
 mean_samples = mean(samples_constrained)</code></pre><pre><code class="nohighlight hljs">2-element Vector{Float64}:
- 2.3880825467195255
- 2.2941583863910795</code></pre><p>We plot a histogram of the samples for the two parameters. The vertical line in each graph indicates the mean of the samples.</p><pre><code class="language-julia hljs">histogram(
+ 2.37178314201933
+ 2.3049676366916776</code></pre><p>We plot a histogram of the samples for the two parameters. The vertical line in each graph indicates the mean of the samples.</p><pre><code class="language-julia hljs">histogram(
     reduce(hcat, samples_constrained)&#39;;
     xlabel=&quot;sample&quot;,
     ylabel=&quot;counts&quot;,
     layout=2,
     title=[&quot;variance&quot; &quot;inverse length scale&quot;],
 )
-vline!(mean_samples&#39;; layout=2, labels=&quot;mean&quot;)</code></pre><p><img src="../1312685123.png" alt/></p><p>Again we can observe that there is a significant improvement over the log-likelihood of the test data with respect to the posterior Gaussian process with default kernel parameters.</p><pre><code class="language-julia hljs">mean(logpdf(gp_posterior(x_train, y_train, p)(x_test), y_test) for p in samples)</code></pre><pre><code class="nohighlight hljs">-9.862865264850255</code></pre><p>We sample a function from the posterior GP for the final 100 samples of kernel parameters.</p><pre><code class="language-julia hljs">plt = plot(;
+vline!(mean_samples&#39;; layout=2, labels=&quot;mean&quot;)</code></pre><p><img src="../1312685123.png" alt/></p><p>Again we can observe that there is a significant improvement over the log-likelihood of the test data with respect to the posterior Gaussian process with default kernel parameters.</p><pre><code class="language-julia hljs">mean(logpdf(gp_posterior(x_train, y_train, p)(x_test), y_test) for p in samples)</code></pre><pre><code class="nohighlight hljs">-8.245025486317127</code></pre><p>We sample a function from the posterior GP for the final 100 samples of kernel parameters.</p><pre><code class="language-julia hljs">plt = plot(;
     xlim=(0, 1), xlabel=&quot;x&quot;, ylabel=&quot;y&quot;, title=&quot;posterior (EllipticalSliceSampling)&quot;
 )
 scatter!(plt, x_train, y_train; label=&quot;Train Data&quot;)
@@ -174,7 +174,7 @@ scatter!(plt, x_test, y_test; label=&quot;Test Data&quot;)
 for p in samples[(end - 100):end]
     sampleplot!(plt, 0:0.02:1, gp_posterior(x_train, y_train, p); seriescolor=&quot;red&quot;)
 end
-plt</code></pre><p><img src="../2448701084.png" alt/></p><h2 id="Variational-Inference"><a class="docs-heading-anchor" href="#Variational-Inference">Variational Inference</a><a id="Variational-Inference-1"></a><a class="docs-heading-anchor-permalink" href="#Variational-Inference" title="Permalink"></a></h2><p>Sanity check for the Evidence Lower BOund (ELBO) implemented according to M. K. Titsias&#39;s <em>Variational learning of inducing variables in sparse Gaussian processes</em>.</p><pre><code class="language-julia hljs">elbo(VFE(f(rand(5))), fx, y_train)</code></pre><pre><code class="nohighlight hljs">-25.697447617236545</code></pre><p>We use the LBFGS algorithm to maximize the given ELBO. It is provided by the Julia package <a href="https://github.com/JuliaNLSolvers/Optim.jl">Optim.jl</a>.</p><pre><code class="language-julia hljs">using Optim</code></pre><p>We define a function which returns the negative ELBO for different variance and inverse lengthscale parameters of the Matern kernel and different pseudo-points. We ensure that the kernel parameters are positive with the softplus function</p><p class="math-container">\[f(x) = \log (1 + \exp x),\]</p><p>and that the pseudo-points are in the unit interval <span>$[0,1]$</span> with the logistic function</p><p class="math-container">\[f(x) = \frac{1}{1 + \exp{(-x)}}.\]</p><pre><code class="language-julia hljs">jitter = 1e-6  # &quot;observing&quot; the latent process with some (small) amount of jitter improves numerical stability
+plt</code></pre><p><img src="../2448701084.png" alt/></p><h2 id="Variational-Inference"><a class="docs-heading-anchor" href="#Variational-Inference">Variational Inference</a><a id="Variational-Inference-1"></a><a class="docs-heading-anchor-permalink" href="#Variational-Inference" title="Permalink"></a></h2><p>Sanity check for the Evidence Lower BOund (ELBO) implemented according to M. K. Titsias&#39;s <em>Variational learning of inducing variables in sparse Gaussian processes</em>.</p><pre><code class="language-julia hljs">elbo(VFE(f(rand(5))), fx, y_train)</code></pre><pre><code class="nohighlight hljs">-25.672858860550487</code></pre><p>We use the LBFGS algorithm to maximize the given ELBO. It is provided by the Julia package <a href="https://github.com/JuliaNLSolvers/Optim.jl">Optim.jl</a>.</p><pre><code class="language-julia hljs">using Optim</code></pre><p>We define a function which returns the negative ELBO for different variance and inverse lengthscale parameters of the Matern kernel and different pseudo-points. We ensure that the kernel parameters are positive with the softplus function</p><p class="math-container">\[f(x) = \log (1 + \exp x),\]</p><p>and that the pseudo-points are in the unit interval <span>$[0,1]$</span> with the logistic function</p><p class="math-container">\[f(x) = \frac{1}{1 + \exp{(-x)}}.\]</p><pre><code class="language-julia hljs">jitter = 1e-6  # &quot;observing&quot; the latent process with some (small) amount of jitter improves numerical stability
 
 function objective_function(x, y)
     function negative_elbo(params)
@@ -197,31 +197,31 @@ opt = optimize(objective_function(x_train, y_train), x0, LBFGS())</code></pre><p
     Algorithm:     L-BFGS
 
  * Convergence measures
-    |x - x&#39;|               = 0.00e+00 ≤ 0.0e+00
-    |x - x&#39;|/|x&#39;|          = 0.00e+00 ≤ 0.0e+00
-    |f(x) - f(x&#39;)|         = 0.00e+00 ≤ 0.0e+00
-    |f(x) - f(x&#39;)|/|f(x&#39;)| = 0.00e+00 ≤ 0.0e+00
-    |g(x)|                 = 1.78e-08 ≰ 1.0e-08
+    |x - x&#39;|               = 8.27e-09 ≰ 0.0e+00
+    |x - x&#39;|/|x&#39;|          = 9.87e-10 ≰ 0.0e+00
+    |f(x) - f(x&#39;)|         = 5.68e-14 ≰ 0.0e+00
+    |f(x) - f(x&#39;)|/|f(x&#39;)| = 5.23e-15 ≰ 0.0e+00
+    |g(x)|                 = 9.39e-09 ≤ 1.0e-08
 
  * Work counters
     Seconds run:   1  (vs limit Inf)
-    Iterations:    50
-    f(x) calls:    132
-    ∇f(x) calls:   132
+    Iterations:    31
+    f(x) calls:    75
+    ∇f(x) calls:   75
 </code></pre><pre><code class="language-julia hljs">opt.minimizer</code></pre><pre><code class="nohighlight hljs">7-element Vector{Float64}:
-  8.379380146747405
-  3.932737544475234
-  0.6917102802210456
- -1.7583267680817054
- -4.133679978407258
-  1.2763097372810075
-  1.8479571184838093</code></pre><p>The optimized value of the variance is</p><pre><code class="language-julia hljs">softplus(opt.minimizer[1])</code></pre><pre><code class="nohighlight hljs">8.37960967259437</code></pre><p>and of the inverse lengthscale is</p><pre><code class="language-julia hljs">softplus(opt.minimizer[2])</code></pre><pre><code class="nohighlight hljs">3.9521381014078254</code></pre><p>We compute the log-likelihood of the test data for the resulting approximate posterior. We can observe that there is a significant improvement over the log-likelihood with the default kernel parameters of value 1.</p><pre><code class="language-julia hljs">opt_kernel =
+  8.379380099258691
+  3.9327375493482046
+ -4.133679974767163
+  0.6917102799348074
+ -1.758326768085746
+  1.2763097379723627
+  1.847957118444756</code></pre><p>The optimized value of the variance is</p><pre><code class="language-julia hljs">softplus(opt.minimizer[1])</code></pre><pre><code class="nohighlight hljs">8.379609625116554</code></pre><p>and of the inverse lengthscale is</p><pre><code class="language-julia hljs">softplus(opt.minimizer[2])</code></pre><pre><code class="nohighlight hljs">3.9521381061871685</code></pre><p>We compute the log-likelihood of the test data for the resulting approximate posterior. We can observe that there is a significant improvement over the log-likelihood with the default kernel parameters of value 1.</p><pre><code class="language-julia hljs">opt_kernel =
     softplus(opt.minimizer[1]) *
     (Matern52Kernel() ∘ ScaleTransform(softplus(opt.minimizer[2])))
 opt_f = GP(opt_kernel)
 opt_fx = opt_f(x_train, 0.1)
 ap = posterior(VFE(opt_f(logistic.(opt.minimizer[3:end]), jitter)), opt_fx, y_train)
-logpdf(ap(x_test), y_test)</code></pre><pre><code class="nohighlight hljs">-1.0522111754590087</code></pre><p>We visualize the approximate posterior with optimized parameters.</p><pre><code class="language-julia hljs">scatter(
+logpdf(ap(x_test), y_test)</code></pre><pre><code class="nohighlight hljs">-1.0522111749540446</code></pre><p>We visualize the approximate posterior with optimized parameters.</p><pre><code class="language-julia hljs">scatter(
     x_train,
     y_train;
     xlim=(0, 1),
@@ -232,7 +232,7 @@ logpdf(ap(x_test), y_test)</code></pre><pre><code class="nohighlight hljs">-1.05
 )
 scatter!(x_test, y_test; label=&quot;Test Data&quot;)
 plot!(0:0.001:1, ap; label=false, ribbon_scale=2)
-vline!(logistic.(opt.minimizer[3:end]); label=&quot;Pseudo-points&quot;)</code></pre><p><img src="../3214725185.png" alt/></p><h2 id="Exact-Gaussian-Process-Inference"><a class="docs-heading-anchor" href="#Exact-Gaussian-Process-Inference">Exact Gaussian Process Inference</a><a id="Exact-Gaussian-Process-Inference-1"></a><a class="docs-heading-anchor-permalink" href="#Exact-Gaussian-Process-Inference" title="Permalink"></a></h2><p>Here we use Type-II MLE to train the hyperparameters of the Gaussian process. This means that our loss function is the negative log marginal likelihood.</p><p>We re-calculate the log-likelihood of the test dataset with the default kernel parameters of value 1 for the sake of comparison.</p><pre><code class="language-julia hljs">logpdf(p_fx(x_test), y_test)</code></pre><pre><code class="nohighlight hljs">-232.51565975751606</code></pre><p>We define a function which returns the negative log marginal likelihood for different variance and inverse lengthscale parameters of the Matern kernel and different pseudo-points. We ensure that the kernel parameters are positive with the softplus function <span>$f(x) = \log (1 + \exp x)$</span>.</p><pre><code class="language-julia hljs">function loss_function(x, y)
+vline!(logistic.(opt.minimizer[3:end]); label=&quot;Pseudo-points&quot;)</code></pre><p><img src="../3214725185.png" alt/></p><h2 id="Exact-Gaussian-Process-Inference"><a class="docs-heading-anchor" href="#Exact-Gaussian-Process-Inference">Exact Gaussian Process Inference</a><a id="Exact-Gaussian-Process-Inference-1"></a><a class="docs-heading-anchor-permalink" href="#Exact-Gaussian-Process-Inference" title="Permalink"></a></h2><p>Here we use Type-II MLE to train the hyperparameters of the Gaussian process. This means that our loss function is the negative log marginal likelihood.</p><p>We re-calculate the log-likelihood of the test dataset with the default kernel parameters of value 1 for the sake of comparison.</p><pre><code class="language-julia hljs">logpdf(p_fx(x_test), y_test)</code></pre><pre><code class="nohighlight hljs">-232.51565975767468</code></pre><p>We define a function which returns the negative log marginal likelihood for different variance and inverse lengthscale parameters of the Matern kernel and different pseudo-points. We ensure that the kernel parameters are positive with the softplus function <span>$f(x) = \log (1 + \exp x)$</span>.</p><pre><code class="language-julia hljs">function loss_function(x, y)
     function negativelogmarginallikelihood(params)
         kernel =
             softplus(params[1]) * (Matern52Kernel() ∘ ScaleTransform(softplus(params[2])))
@@ -252,27 +252,27 @@ opt = Optim.optimize(loss_function(x_train, y_train), θ0, LBFGS())</code></pre>
     Algorithm:     L-BFGS
 
  * Convergence measures
-    |x - x&#39;|               = 5.24e-05 ≰ 0.0e+00
-    |x - x&#39;|/|x&#39;|          = 6.25e-06 ≰ 0.0e+00
-    |f(x) - f(x&#39;)|         = 3.50e-11 ≰ 0.0e+00
-    |f(x) - f(x&#39;)|/|f(x&#39;)| = 3.23e-12 ≰ 0.0e+00
-    |g(x)|                 = 5.47e-09 ≤ 1.0e-08
+    |x - x&#39;|               = 7.66e-06 ≰ 0.0e+00
+    |x - x&#39;|/|x&#39;|          = 9.14e-07 ≰ 0.0e+00
+    |f(x) - f(x&#39;)|         = 1.04e-12 ≰ 0.0e+00
+    |f(x) - f(x&#39;)|/|f(x&#39;)| = 9.54e-14 ≰ 0.0e+00
+    |g(x)|                 = 2.25e-09 ≤ 1.0e-08
 
  * Work counters
     Seconds run:   0  (vs limit Inf)
     Iterations:    8
-    f(x) calls:    31
-    ∇f(x) calls:   31
+    f(x) calls:    23
+    ∇f(x) calls:   23
 </code></pre><pre><code class="language-julia hljs">opt.minimizer</code></pre><pre><code class="nohighlight hljs">2-element Vector{Float64}:
- 8.385520538505109
- 3.968794211200075</code></pre><p>The optimized value of the variance is</p><pre><code class="language-julia hljs">softplus(opt.minimizer[1])</code></pre><pre><code class="nohighlight hljs">8.385748659451929</code></pre><p>and of the inverse lengthscale is</p><pre><code class="language-julia hljs">softplus(opt.minimizer[2])</code></pre><pre><code class="nohighlight hljs">3.98751409983571</code></pre><p>We compute the log-likelihood of the test data for the resulting optimized posterior. We can observe that there is a significant improvement over the log-likelihood with the default kernel parameters of value 1.</p><pre><code class="language-julia hljs">opt_kernel =
+ 8.38552052998622
+ 3.9687942190816896</code></pre><p>The optimized value of the variance is</p><pre><code class="language-julia hljs">softplus(opt.minimizer[1])</code></pre><pre><code class="nohighlight hljs">8.385748650934984</code></pre><p>and of the inverse lengthscale is</p><pre><code class="language-julia hljs">softplus(opt.minimizer[2])</code></pre><pre><code class="nohighlight hljs">3.9875141075711538</code></pre><p>We compute the log-likelihood of the test data for the resulting optimized posterior. We can observe that there is a significant improvement over the log-likelihood with the default kernel parameters of value 1.</p><pre><code class="language-julia hljs">opt_kernel =
     softplus(opt.minimizer[1]) *
     (Matern52Kernel() ∘ ScaleTransform(softplus(opt.minimizer[2])))
 
 opt_f = GP(opt_kernel)
 opt_fx = opt_f(x_train, 0.1)
 opt_p_fx = posterior(opt_fx, y_train)
-logpdf(opt_p_fx(x_test), y_test)</code></pre><pre><code class="nohighlight hljs">-1.0849767501986156</code></pre><p>We visualize the posterior with optimized parameters.</p><pre><code class="language-julia hljs">scatter(
+logpdf(opt_p_fx(x_test), y_test)</code></pre><pre><code class="nohighlight hljs">-1.0849767537352928</code></pre><p>We visualize the posterior with optimized parameters.</p><pre><code class="language-julia hljs">scatter(
     x_train,
     y_train;
     xlim=(0, 1),
@@ -282,4 +282,4 @@ logpdf(opt_p_fx(x_test), y_test)</code></pre><pre><code class="nohighlight hljs"
     label=&quot;Train Data&quot;,
 )
 scatter!(x_test, y_test; label=&quot;Test Data&quot;)
-plot!(0:0.001:1, opt_p_fx; label=false, ribbon_scale=2)</code></pre><p><img src="../1276483426.png" alt/></p><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../../concrete_features/">« Concrete Features</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.5 on <span class="colophon-date" title="Friday 27 August 2021 16:02">Friday 27 August 2021</span>. Using Julia version 1.6.2.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+plot!(0:0.001:1, opt_p_fx; label=false, ribbon_scale=2)</code></pre><p><img src="../1276483426.png" alt/></p><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../../concrete_features/">« Concrete Features</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.5 on <span class="colophon-date" title="Friday 27 August 2021 16:04">Friday 27 August 2021</span>. Using Julia version 1.6.2.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
