@@ -1,0 +1,61 @@
+name: Downgrade CI
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+
+jobs:
+  generate-matrix:
+    if: contains(github.event.pull_request.labels.*.name, 'downgrade-ci')
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.genmat.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: julia-actions/setup-julia@latest
+        with:
+          version: '1'
+          arch: x64
+      - run: julia -e 'import Pkg; Pkg.add("CompatHelperLocal")'
+      - run: julia -e 'import Pkg; Pkg.add(path=".")'
+      - if: ${{ always() }}
+        id: genmat
+        run: |
+          echo '::echo::on'
+          julia -e 'import CompatHelperLocal as CHL; import AbstractGPs; projfile = joinpath(pathof(AbstractGPs) |> dirname |> dirname, "Project.toml"); println(CHL.compats_combinations_to_gha_string(CHL.get_compats_combinations(projfile, only_resolveable=true)))'
+  test:
+    needs: generate-matrix
+    runs-on: ubuntu-latest
+    strategy:
+      matrix: ${{fromJSON(needs.generate-matrix.outputs.matrix)}}
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v2
+      - uses: julia-actions/setup-julia@latest
+        with:
+          version: '1'
+          arch: x64
+      - run: julia -e 'import Pkg; Pkg.add("CompatHelperLocal")'
+      - run: julia -e 'import Pkg; Pkg.add(path=".")'
+      - run: julia -e 'import CompatHelperLocal as CHL; import AbstractGPs; CHL.test_compats_combinations(AbstractGPs, [${{ matrix.compats }}])'
+  test-simple:
+    if: contains(github.event.pull_request.labels.*.name, 'downgrade-ci')
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        version: 
+          - '1'
+        arch: 
+          - x64
+    steps:
+      - uses: actions/checkout@v4
+      - uses: julia-actions/setup-julia@v1
+        with:
+          version: ${{ matrix.version }}
+      - uses: cjdoris/julia-downgrade-compat-action@v1
+        with:
+          skip: Pkg,TOML,Statistics,Random,LinearAlgebra,Test
+      - uses: julia-actions/julia-buildpkg@v1
+      - uses: julia-actions/julia-runtest@v1
